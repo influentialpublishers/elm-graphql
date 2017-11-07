@@ -368,7 +368,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       let fieldEncoders: Array<string> = [];
       let fields = type.getFields();
       for (let name in fields) {
-      let field = fields[name];
+        let field = fields[name];
         let valuePath = value + '.' + field.name;
         fieldEncoders.push(`("${field.name}", ${encoderForInputType(field.type, false, valuePath)})`);
       }
