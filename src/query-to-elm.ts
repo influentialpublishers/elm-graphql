@@ -374,7 +374,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       }
       encoder = '(Json.Encode.object [' + fieldEncoders.join(`, `) + '])';
     } else if (type instanceof GraphQLList) {
-    encoder = '(Json.Encode.list (List.map (\\x -> ' + encoderForInputType(type.ofType, true, 'x') + ') ' + value + '))';
+      encoder = '(Json.Encode.list (List.map (\\x -> ' + encoderForInputType(type.ofType, true, 'x') + ') ' + value + '))';
     } else if (type instanceof GraphQLScalarType) {
       switch (type.name) {
         case 'Int': encoder = 'Json.Encode.int ' + value; break;
@@ -389,7 +389,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     }
 
     if (isMaybe) {
-    encoder = '(maybeEncode (\\o -> ' + encoder + ') '+ path + ')'
+      encoder = '(maybeEncode (\\o -> ' + encoder + ') '+ path + ')'
     }
     return encoder;
   }
