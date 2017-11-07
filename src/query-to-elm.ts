@@ -352,14 +352,16 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     }
   }
 
-  function encoderForInputType(type: GraphQLType, isNonNull?: boolean, value?: string): string {
+  function encoderForInputType(type: GraphQLType, isNonNull?: boolean, path?: string): string {
     let encoder: string;
 
+    let value = path;
     let isMaybe = false
     if (type instanceof GraphQLNonNull) {
       type = type['ofType'];
     } else {
       isMaybe = true;    
+      value = 'o';
     }
 
     if (type instanceof GraphQLInputObjectType) {
@@ -387,7 +389,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     }
 
     if (isMaybe) {
-      encoder = '(maybeEncode ' + encoder + ')'
+      encoder = '(maybeEncode (\\o -> ' + encoder + ') '+ path + ')'
     }
     return encoder;
   }
