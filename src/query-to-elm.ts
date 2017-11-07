@@ -352,27 +352,29 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     }
   }
 
-  function encoderForInputType(type: GraphQLType, isNonNull?: boolean, value?: string): string {
+  function encoderForInputType(type: GraphQLType, isNonNull?: boolean, path?: string): string {
     let encoder: string;
 
+    let value = path;
     let isMaybe = false
     if (type instanceof GraphQLNonNull) {
       type = type['ofType'];
     } else {
       isMaybe = true;    
+      value = 'o';
     }
 
     if (type instanceof GraphQLInputObjectType) {
       let fieldEncoders: Array<string> = [];
       let fields = type.getFields();
       for (let name in fields) {
-        let field = fields[name];
+      let field = fields[name];
         let valuePath = value + '.' + field.name;
         fieldEncoders.push(`("${field.name}", ${encoderForInputType(field.type, false, valuePath)})`);
       }
       encoder = '(Json.Encode.object [' + fieldEncoders.join(`, `) + '])';
     } else if (type instanceof GraphQLList) {
-      encoder = '(Json.Encode.list (List.map (\\x -> ' + encoderForInputType(type.ofType, true, 'x') + ') ' + value + '))';
+    encoder = '(Json.Encode.list (List.map (\\x -> ' + encoderForInputType(type.ofType, true, 'x') + ') ' + value + '))';
     } else if (type instanceof GraphQLScalarType) {
       switch (type.name) {
         case 'Int': encoder = 'Json.Encode.int ' + value; break;
@@ -387,7 +389,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     }
 
     if (isMaybe) {
-      encoder = '(maybeEncode ' + encoder + ')'
+    encoder = '(maybeEncode (\\o -> ' + encoder + ') '+ path + ')'
     }
     return encoder;
   }
