@@ -270,6 +270,21 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         if (field.name.value != '__typename') {
           throw new Error('Unexpected field: ' + field.name.value);
         }
+      } else if (sel.kind == 'FragmentSpread') {
+        // expand out all fragment spreads
+          let spreadName = (<FragmentSpread>sel).name.value;
+          let def = fragmentDefinitionMap[spreadName];
+          let name = def.typeCondition.name.value;
+          decoder += `\n${indent}"${name}" -> `;
+
+          info.enter(def)
+          let fields = walkSelectionSet(def.selectionSet, info);
+          let fieldNames = getSelectionSetFields(def.selectionSet, info);
+          info.leave(def)
+          let ctor = elmSafeName(name);
+          let shape = `(\\${fieldNames.join(' ')} -> ${ctor} { ${fieldNames.map(f => f + ' = ' + f).join(', ')} })`;
+          let right = '(map ' + shape + ' ' + fields.expr + ')';
+          decoder += right;
       } else {
         throw new Error('Unexpected: ' + sel.kind);
       }
