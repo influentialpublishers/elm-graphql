@@ -249,7 +249,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
   }
 
   function walkEnum(enumType: GraphQLEnumType): ElmTypeDecl {
-    return new ElmTypeDecl(enumType.name, enumType.getValues().map(v => v.name[0].toUpperCase() + v.name.substr(1)));
+    return new ElmTypeDecl(enumType.name, enumType.getValues().map(v => enumType.name + v.name[0].toUpperCase() + v.name.substr(1).toLowerCase()));
   }
 
   function decoderForEnum(enumType: GraphQLEnumType): ElmFunctionDecl {
@@ -258,7 +258,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     return new ElmFunctionDecl(enumType.name.toLowerCase() + 'Decoder', [], new ElmTypeName('Decoder ' + decoderTypeName),
         { expr: 'string |> andThen (\\s ->\n' +
                 '        case s of\n' + enumType.getValues().map(v =>
-                '            "' + v.name + '" -> succeed ' + v.name[0].toUpperCase() + v.name.substr(1)).join('\n') + '\n' +
+                '            "' + v.name + '" -> succeed ' + decoderTypeName + v.name[0].toUpperCase() + v.name.substr(1).toLowerCase()).join('\n') + '\n' +
                 '            _ -> fail "Unknown ' + enumType.name + '")'
               });
   }
