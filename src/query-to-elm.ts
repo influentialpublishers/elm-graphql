@@ -130,7 +130,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     for (let name in seenUnions) {
       let union = seenUnions[name];
       decls = walkUnion(union, info).concat(decls);
-      expose.push(union.name+'(..)');
+      expose.push(name+'(..)');
     }
 
     return [decls, expose];
@@ -189,6 +189,9 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
         if (node.kind == 'InlineFragment') {
           let parentType = <GraphQLUnionType> info.getType();
           if (parentType instanceof GraphQLNonNull) {
+            parentType = parentType['ofType']
+          }
+          if (parentType instanceof GraphQLList) {
             parentType = parentType['ofType']
           }
           unions[parentType.name] = parentType;
@@ -263,6 +266,9 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
   function walkUnion(union: GraphQLUnionType, info: TypeInfo): Array<ElmDecl> {
     if (union instanceof GraphQLNonNull) {
       union = union['ofType'];
+    }
+    if (union instanceof GraphQLList) {
+        union = union['ofType']
     }
     let types = union.getTypes();
     // let params = types.map((t, i) => alphabet[i]).join(' ');
@@ -439,7 +445,12 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     let fields: Array<ElmFieldDecl> = [];
     let spreads: Array<string> = [];
     let info_type = info.getType();
+
     if (info_type instanceof GraphQLNonNull) {
+        info_type = info_type['ofType']
+    }
+
+    if (info_type instanceof GraphQLList) {
         info_type = info_type['ofType']
     }
 
@@ -471,6 +482,11 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       if (union instanceof GraphQLNonNull) {
           union = union['ofType']
       }
+
+      if (union instanceof GraphQLList) {
+          union = union['ofType']
+      }
+
       let typeMap: { [name: string]: ElmType } = {};
       for (let type of union.getTypes()) {
         typeMap[type.name] = new ElmTypeRecord([]);
