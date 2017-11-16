@@ -129,8 +129,8 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
 
     for (let name in seenUnions) {
       let union = seenUnions[name];
-      decls.unshift(walkUnion(union));
-      expose.push(union.name);
+      decls = walkUnion(union, info).concat(decls);
+      expose.push(union.name+'(..)');
     }
 
     return [decls, expose];
@@ -260,14 +260,20 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
               });
   }
 
-  function walkUnion(union: GraphQLUnionType): ElmTypeDecl {
+  function walkUnion(union: GraphQLUnionType, info: TypeInfo): Array<ElmDecl> {
     if (union instanceof GraphQLNonNull) {
       union = union['ofType'];
     }
     let types = union.getTypes();
-    let params = types.map((t, i) => alphabet[i]).join(' ');
-    return new ElmTypeDecl(union.name + ' ' + params, types.map((t, i) => elmSafeName(t.name) + ' ' + alphabet[i]));
-
+    // let params = types.map((t, i) => alphabet[i]).join(' ');
+    let decls: Array<ElmDecl> = [];
+    for (let type of types) {
+        let name = union.name + type.name + 'Alias';
+        let t = typeToElm(type, true);
+        decls.push(new ElmTypeAliasDecl(name, t))
+    }
+    decls.push(new ElmTypeDecl(union.name + ' ', types.map((t, i) => elmSafeName(union.name+t.name) + ' ' + union.name + t.name + 'Alias')));
+    return decls;
   }
   
   function walkOperationDefinition(def: OperationDefinition, info: TypeInfo): Array<ElmDecl> {
@@ -494,7 +500,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       for (let name in typeMap) {
         args.push(typeMap[name]);
       }
-      return new ElmTypeApp(union.name, args);
+      return new ElmTypeApp(union.name, []);
   }
 
   function walkField(field: Field, info: TypeInfo): ElmFieldDecl {

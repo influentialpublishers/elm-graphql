@@ -208,7 +208,12 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
     
     if (info_type instanceof GraphQLUnionType) {
       // Union
-      return walkUnion(originalName, field, info);
+      let expr = walkUnion(originalName, field, info);
+
+      if (isMaybe) {
+        expr = { expr: '(' + 'maybe ' + expr.expr + ')'};
+      }
+      return expr;
     } else {
       // SelectionSet
       if (field.selectionSet) {
@@ -225,11 +230,11 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         let right = '(map ' + shape + ' ' + fields.expr + '))';
         let indent = '        ';
         if (prefix) {
-	  right = '(' + prefix + right + ')';
-	}
-	if (isMaybe) {
-	  right = '(' + 'maybe ' + right + ')';
-	}
+	      right = '(' + prefix + right + ')';
+	    }
+	    if (isMaybe) {
+	      right = '(' + 'maybe ' + right + ')';
+	    }
 
         return { expr: left + indent + right };
       } else {
@@ -251,6 +256,13 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
     let decoder = '\n        (\\typename -> case typename of';
     let indent = '            ';
 
+    let union_type = info.getType();
+    let union_name = "";
+
+    if (union_type instanceof GraphQLUnionType) {
+      union_name = union_type.name;
+    }
+
     for (let sel of field.selectionSet.selections) {
       if (sel.kind == 'InlineFragment') {
         let inlineFragment = <InlineFragment> sel;
@@ -260,7 +272,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         let fields = walkSelectionSet(inlineFragment.selectionSet, info);
         info.leave(inlineFragment);
         let fieldNames = getSelectionSetFields(inlineFragment.selectionSet, info);
-        let ctor = elmSafeName(inlineFragment.typeCondition.name.value);
+        let ctor = elmSafeName((union_name+inlineFragment.typeCondition.name.value));
         let shape = `(\\${fieldNames.join(' ')} -> ${ctor} { ${fieldNames.map(f => f + ' = ' + f).join(', ')} })`;
         let right = '(map ' + shape + ' ' + fields.expr + ')';
         decoder += right;
@@ -281,7 +293,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
           let fields = walkSelectionSet(def.selectionSet, info);
           let fieldNames = getSelectionSetFields(def.selectionSet, info);
           info.leave(def)
-          let ctor = elmSafeName(name);
+          let ctor = elmSafeName((union_name+name));
           let shape = `(\\${fieldNames.join(' ')} -> ${ctor} { ${fieldNames.map(f => f + ' = ' + f).join(', ')} })`;
           let right = '(map ' + shape + ' ' + fields.expr + ')';
           decoder += right;
@@ -292,7 +304,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
 
     decoder += `\n${indent}_ -> fail "Unexpected union type")`;
 
-    decoder = '((field "__typename" string) `andThen` ' + decoder + ')';
+    decoder = '((field "__typename" string) |> andThen ' + decoder + ')';
     return { expr: '(field "' + originalName + '" ' + decoder +')' };
   }
 
