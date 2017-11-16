@@ -203,25 +203,21 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
 
     // Arguments (opt)
     let args = field.arguments; // e.g. id: "1000"
-    
-    // todo: Directives
-    
+
+    let prefix = '';
+    if (info_type instanceof GraphQLList) {
+      info_type = info_type['ofType'];
+      prefix = 'list ';
+    }
+
     if (info_type instanceof GraphQLUnionType) {
       // Union
       let expr = walkUnion(originalName, field, info);
 
-      if (isMaybe) {
-        expr = { expr: '(' + 'maybe ' + expr.expr + ')'};
-      }
       return expr;
     } else {
       // SelectionSet
       if (field.selectionSet) {
-        let prefix = '';
-        if (info_type instanceof GraphQLList) {
-          prefix = 'list ';
-        }
-
         let fields = walkSelectionSet(field.selectionSet, info);
         info.leave(field);
         let fieldNames = getSelectionSetFields(field.selectionSet, info);
@@ -240,14 +236,15 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
       } else {
 
         let decoder = leafTypeToDecoder(info_type);
-        let expr = { expr: '(field "' + originalName + '" (' + decoder +'))' };
+
+        let right = '(field "' + originalName + '" (' + prefix + decoder +'))';
 
         if (isMaybe) {
-          expr = { expr: '(maybe ' + expr.expr + ')' };
+          right = '(maybe ' + right + ')';
         }
 
         info.leave(field);
-        return expr;
+        return { expr: right };
       }
     }
   }
@@ -258,6 +255,19 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
 
     let union_type = info.getType();
     let union_name = "";
+
+    let prefix = "";
+    let isMaybe = true;
+
+    if (union_type instanceof GraphQLNonNull) {
+      union_type = union_type['ofType'];
+      isMaybe = false;
+    }
+
+    if (union_type instanceof GraphQLList) {
+      union_type = union_type['ofType'];
+      prefix = "list ";
+    }
 
     if (union_type instanceof GraphQLUnionType) {
       union_name = union_type.name;
@@ -305,28 +315,30 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
     decoder += `\n${indent}_ -> fail "Unexpected union type")`;
 
     decoder = '((field "__typename" string) |> andThen ' + decoder + ')';
+
+    if (prefix) {
+        decoder = '(' + prefix + decoder + ')';
+    }
+    if (isMaybe) {
+        decoder = '(' + 'maybe ' + decoder + ')';
+    }
+
     return { expr: '(field "' + originalName + '" ' + decoder +')' };
   }
 
   function leafTypeToDecoder(type: GraphQLType): string {
-    let prefix = '';
-
-    if (type instanceof GraphQLList) {
-      prefix = 'list ';
-      type = type['ofType'];
-    }
     // leaf types only
     if (type instanceof GraphQLScalarType) {
       switch (type.name) {
-        case 'Int': return prefix + 'int';
-        case 'Float': return prefix + 'float';
-        case 'Boolean': return prefix + 'bool';
+        case 'Int': return 'int';
+        case 'Float': return 'float';
+        case 'Boolean': return 'bool';
         case 'ID':
-        case 'DateTime': return prefix + 'string';
-        case 'String': return prefix + 'string';
+        case 'DateTime': return 'string';
+        case 'String': return 'string';
       }
     } else if (type instanceof GraphQLEnumType) {
-      return prefix + type.name.toLowerCase() + 'Decoder';
+      return type.name.toLowerCase() + 'Decoder';
     } else {
       throw new Error('not a leaf type: ' + (<any>type).name);
     }
