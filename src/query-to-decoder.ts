@@ -203,20 +203,21 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
 
     // Arguments (opt)
     let args = field.arguments; // e.g. id: "1000"
-    
-    // todo: Directives
-    
+
+    let prefix = '';
+    if (info_type instanceof GraphQLList) {
+      info_type = info_type['ofType'];
+      prefix = 'list ';
+    }
+
     if (info_type instanceof GraphQLUnionType) {
       // Union
-      return walkUnion(originalName, field, info);
+      let expr = walkUnion(originalName, field, info);
+
+      return expr;
     } else {
       // SelectionSet
       if (field.selectionSet) {
-        let prefix = '';
-        if (info_type instanceof GraphQLList) {
-          prefix = 'list ';
-        }
-
         let fields = walkSelectionSet(field.selectionSet, info);
         info.leave(field);
         let fieldNames = getSelectionSetFields(field.selectionSet, info);
@@ -225,24 +226,25 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         let right = '(map ' + shape + ' ' + fields.expr + '))';
         let indent = '        ';
         if (prefix) {
-	  right = '(' + prefix + right + ')';
-	}
-	if (isMaybe) {
-	  right = '(' + 'maybe ' + right + ')';
-	}
+	      right = '(' + prefix + right + ')';
+	    }
+	    if (isMaybe) {
+	      right = '(' + 'maybe ' + right + ')';
+	    }
 
         return { expr: left + indent + right };
       } else {
 
         let decoder = leafTypeToDecoder(info_type);
-        let expr = { expr: '(field "' + originalName + '" (' + decoder +'))' };
+
+        let right = '(field "' + originalName + '" (' + prefix + decoder +'))';
 
         if (isMaybe) {
-          expr = { expr: '(maybe ' + expr.expr + ')' };
+          right = '(maybe ' + right + ')';
         }
 
         info.leave(field);
-        return expr;
+        return { expr: right };
       }
     }
   }
@@ -250,6 +252,26 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
   function walkUnion(originalName: string, field: Field, info: TypeInfo): ElmExpr {
     let decoder = '\n        (\\typename -> case typename of';
     let indent = '            ';
+
+    let union_type = info.getType();
+    let union_name = "";
+
+    let prefix = "";
+    let isMaybe = true;
+
+    if (union_type instanceof GraphQLNonNull) {
+      union_type = union_type['ofType'];
+      isMaybe = false;
+    }
+
+    if (union_type instanceof GraphQLList) {
+      union_type = union_type['ofType'];
+      prefix = "list ";
+    }
+
+    if (union_type instanceof GraphQLUnionType) {
+      union_name = union_type.name;
+    }
 
     for (let sel of field.selectionSet.selections) {
       if (sel.kind == 'InlineFragment') {
@@ -260,7 +282,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         let fields = walkSelectionSet(inlineFragment.selectionSet, info);
         info.leave(inlineFragment);
         let fieldNames = getSelectionSetFields(inlineFragment.selectionSet, info);
-        let ctor = elmSafeName(inlineFragment.typeCondition.name.value);
+        let ctor = elmSafeName((union_name+'_'+inlineFragment.typeCondition.name.value));
         let shape = `(\\${fieldNames.join(' ')} -> ${ctor} { ${fieldNames.map(f => f + ' = ' + f).join(', ')} })`;
         let right = '(map ' + shape + ' ' + fields.expr + ')';
         decoder += right;
@@ -270,6 +292,21 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         if (field.name.value != '__typename') {
           throw new Error('Unexpected field: ' + field.name.value);
         }
+      } else if (sel.kind == 'FragmentSpread') {
+        // expand out all fragment spreads
+          let spreadName = (<FragmentSpread>sel).name.value;
+          let def = fragmentDefinitionMap[spreadName];
+          let name = def.typeCondition.name.value;
+          decoder += `\n${indent}"${name}" -> `;
+
+          info.enter(def)
+          let fields = walkSelectionSet(def.selectionSet, info);
+          let fieldNames = getSelectionSetFields(def.selectionSet, info);
+          info.leave(def)
+          let ctor = elmSafeName((union_name+'_'+name));
+          let shape = `(\\${fieldNames.join(' ')} -> ${ctor} { ${fieldNames.map(f => f + ' = ' + f).join(', ')} })`;
+          let right = '(map ' + shape + ' ' + fields.expr + ')';
+          decoder += right;
       } else {
         throw new Error('Unexpected: ' + sel.kind);
       }
@@ -277,29 +314,31 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
 
     decoder += `\n${indent}_ -> fail "Unexpected union type")`;
 
-    decoder = '((field "__typename" string) `andThen` ' + decoder + ')';
+    decoder = '((field "__typename" string) |> andThen ' + decoder + ')';
+
+    if (prefix) {
+        decoder = '(' + prefix + decoder + ')';
+    }
+    if (isMaybe) {
+        decoder = '(' + 'maybe ' + decoder + ')';
+    }
+
     return { expr: '(field "' + originalName + '" ' + decoder +')' };
   }
 
   function leafTypeToDecoder(type: GraphQLType): string {
-    let prefix = '';
-
-    if (type instanceof GraphQLList) {
-      prefix = 'list ';
-      type = type['ofType'];
-    }
     // leaf types only
     if (type instanceof GraphQLScalarType) {
       switch (type.name) {
-        case 'Int': return prefix + 'int';
-        case 'Float': return prefix + 'float';
-        case 'Boolean': return prefix + 'bool';
+        case 'Int': return 'int';
+        case 'Float': return 'float';
+        case 'Boolean': return 'bool';
         case 'ID':
-        case 'DateTime': return prefix + 'string';
-        case 'String': return prefix + 'string';
+        case 'DateTime': return 'string';
+        case 'String': return 'string';
       }
     } else if (type instanceof GraphQLEnumType) {
-      return prefix + type.name.toLowerCase() + 'Decoder';
+      return type.name.toLowerCase() + 'Decoder';
     } else {
       throw new Error('not a leaf type: ' + (<any>type).name);
     }
