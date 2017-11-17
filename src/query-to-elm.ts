@@ -194,6 +194,9 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
           if (parentType instanceof GraphQLList) {
             parentType = parentType['ofType']
           }
+          if (parentType instanceof GraphQLNonNull) {
+              parentType = parentType['ofType']
+          }
           unions[parentType.name] = parentType;
         }
         info.enter(node);
@@ -460,6 +463,10 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
         info_type = info_type['ofType']
     }
 
+    if (info_type instanceof GraphQLNonNull) {
+        info_type = info_type['ofType']
+    }
+
     if (info_type instanceof GraphQLUnionType) {
       let type = walkUnionSelectionSet(selSet, info);
       return [[], [], type];
@@ -490,6 +497,10 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       }
 
       if (union instanceof GraphQLList) {
+          union = union['ofType']
+      }
+
+      if (union instanceof GraphQLNonNull) {
           union = union['ofType']
       }
 
@@ -585,6 +596,7 @@ export function typeToElm(type: GraphQLType, isNonNull = false): ElmType {
   if (type instanceof GraphQLNonNull) {
     elmType = typeToElm(type.ofType, true);
   }
+
   else if (type instanceof GraphQLScalarType) {
     switch (type.name) {
       case 'Int': elmType = new ElmTypeName('Int'); break;

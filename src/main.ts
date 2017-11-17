@@ -37,60 +37,16 @@ if (options.help) {
   process.exit(1);
 }
 
-// load config from elm-package.json
-if (!fs.existsSync('elm-package.json')) {
-  console.error('Error: expected elm-package.json');
-  process.exit(1);
-}
-
-let elmPackageJson = JSON.parse(fs.readFileSync('elm-package.json', 'utf8'));
-let config: any = elmPackageJson['graphql'];
-
-if (options.init) {
-  // usage
-  if (!options.endpoint) {
-    usage();
-    process.exit(1);
-  }
-
-  elmPackageJson.graphql = {
-    endpoint: options.endpoint
-  };
-  config = elmPackageJson.graphql;
-
-  if (options.schema) {
-    elmPackageJson.schema = options.schema;
-  }
-
-  if (options.method) {
-    elmPackageJson.method = options.method;
-  }
-
-  // check that the endpoint works
-  performIntrospectionQuery(body => {
-    fs.writeFileSync('elm-package.json', JSON.stringify(elmPackageJson, null, '    '));
-    
-    console.log('Success! You should now run `elm package install jahewson/elm-graphql-module`.');
-    process.exit();
-  });
-}
-
-if (options.endpoint) {
-    config = {
-        endpoint: options.endpoint
-    };
-}
-
-if (!config) {
-    console.error('elm-graphql is not configured for this package. You need to run `elm graphql --init [URL]`.');
+if (!options.endpoint) {
+    console.error('Must specify a graphql endpoint (use option --endpoint');
     process.exit(1);
 }
 
 // output config
-let verb = config.method || 'GET';
-let endpointUrl = config.endpoint;
+let verb = options.method || 'GET';
+let endpointUrl = options.endpoint;
 
-if (options.schema || config.schema) {
+if (options.schema) {
     const filepath = path.resolve(options.schema);
     const obj = require(filepath);
     let schema = buildClientSchema(obj.data)
@@ -106,13 +62,13 @@ else {
 
 function performIntrospectionQuery(callback: (body: string) => void) {
   // introspection query
-  let introspectionUrl = config.endpoint;
+  let introspectionUrl = options.endpoint;
   if (!introspectionUrl) {
     console.log('Error: missing graphql endpoint in elm-package.json');
     process.exit(1);
   }
 
-  let method = config.method || 'GET';
+  let method = verb;
   let reqOpts = method == 'GET'
     ? { url: introspectionUrl,
         method,
