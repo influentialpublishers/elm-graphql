@@ -282,7 +282,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         let fields = walkSelectionSet(inlineFragment.selectionSet, info);
         info.leave(inlineFragment);
         let fieldNames = getSelectionSetFields(inlineFragment.selectionSet, info);
-        let ctor = elmSafeName((union_name+inlineFragment.typeCondition.name.value));
+        let ctor = elmSafeName((union_name+'_'+inlineFragment.typeCondition.name.value));
         let shape = `(\\${fieldNames.join(' ')} -> ${ctor} { ${fieldNames.map(f => f + ' = ' + f).join(', ')} })`;
         let right = '(map ' + shape + ' ' + fields.expr + ')';
         decoder += right;
@@ -303,7 +303,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
           let fields = walkSelectionSet(def.selectionSet, info);
           let fieldNames = getSelectionSetFields(def.selectionSet, info);
           info.leave(def)
-          let ctor = elmSafeName((union_name+name));
+          let ctor = elmSafeName((union_name+'_'+name));
           let shape = `(\\${fieldNames.join(' ')} -> ${ctor} { ${fieldNames.map(f => f + ' = ' + f).join(', ')} })`;
           let right = '(map ' + shape + ' ' + fields.expr + ')';
           decoder += right;
