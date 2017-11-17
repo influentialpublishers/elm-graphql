@@ -274,11 +274,11 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     // let params = types.map((t, i) => alphabet[i]).join(' ');
     let decls: Array<ElmDecl> = [];
     for (let type of types) {
-        let name = union.name + type.name + 'Alias';
+        let name = union.name + '_' + type.name + '_';
         let t = typeToElm(type, true);
         decls.push(new ElmTypeAliasDecl(name, t))
     }
-    decls.push(new ElmTypeDecl(union.name + ' ', types.map((t, i) => elmSafeName(union.name+t.name) + ' ' + union.name + t.name + 'Alias')));
+    decls.push(new ElmTypeDecl(union.name + ' ', types.map((t, i) => elmSafeName(union.name+'_'+t.name) + ' ' + union.name + '_' + t.name + '_')));
     return decls;
   }
   
