@@ -249,7 +249,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
   }
 
   function walkEnum(enumType: GraphQLEnumType): ElmTypeDecl {
-    return new ElmTypeDecl(enumType.name, enumType.getValues().map(v => v.name[0].toUpperCase() + v.name.substr(1)));
+    return new ElmTypeDecl(enumType.name, enumType.getValues().map(v => enumType.name + '_' + v.name[0].toUpperCase() + v.name.substr(1).toLowerCase()));
   }
 
   function decoderForEnum(enumType: GraphQLEnumType): ElmFunctionDecl {
@@ -258,7 +258,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     return new ElmFunctionDecl(enumType.name.toLowerCase() + 'Decoder', [], new ElmTypeName('Decoder ' + decoderTypeName),
         { expr: 'string |> andThen (\\s ->\n' +
                 '        case s of\n' + enumType.getValues().map(v =>
-                '            "' + v.name + '" -> succeed ' + v.name[0].toUpperCase() + v.name.substr(1)).join('\n') + '\n' +
+                '            "' + v.name + '" -> succeed ' + decoderTypeName + '_' + v.name[0].toUpperCase() + v.name.substr(1).toLowerCase()).join('\n') + '\n' +
                 '            _ -> fail "Unknown ' + enumType.name + '")'
               });
   }
@@ -403,7 +403,13 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
         case 'DateTime': encoder = 'Json.Encode.string ' + value; break;
         case 'String': encoder = 'Json.Encode.string ' + value; break;
       }
+    } else if (type instanceof  GraphQLEnumType) {
+      const values = type.getValues()
+      const tuples = values.map((v) => `("${type.name + '_' + v.name[0].toUpperCase() + v.name.substr(1).toLowerCase()}", "${v.name}")`)
+      const map = `[${tuples.join(',')}]`
+      encoder = `Json.Encode.string <| Maybe.withDefault "" <| Maybe.map Tuple.second <| List.head <| (\\s -> List.filter (Tuple.first >> (==)(s)) ${map} ) <| toString ` + value;
     } else {
+
       throw new Error('not implemented: ' + type.constructor.name);
     }
 
