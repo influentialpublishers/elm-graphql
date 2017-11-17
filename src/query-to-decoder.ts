@@ -210,6 +210,10 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
       prefix = 'list ';
     }
 
+      if (info_type instanceof GraphQLNonNull) {
+        info_type = info_type['ofType'];
+      }
+
     if (info_type instanceof GraphQLUnionType) {
       // Union
       let expr = walkUnion(originalName, field, info);
@@ -267,6 +271,10 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
     if (union_type instanceof GraphQLList) {
       union_type = union_type['ofType'];
       prefix = "list ";
+    }
+
+    if (union_type instanceof GraphQLNonNull) {
+        union_type = union_type['ofType'];
     }
 
     if (union_type instanceof GraphQLUnionType) {
@@ -327,6 +335,11 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
   }
 
   function leafTypeToDecoder(type: GraphQLType): string {
+
+    if (type instanceof GraphQLNonNull) {
+      type = type['ofType'];
+    }
+
     // leaf types only
     if (type instanceof GraphQLScalarType) {
       switch (type.name) {
