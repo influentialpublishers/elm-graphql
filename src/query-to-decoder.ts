@@ -210,6 +210,10 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
       prefix = 'list ';
     }
 
+      if (info_type instanceof GraphQLNonNull) {
+        info_type = info_type['ofType'];
+      }
+
     if (info_type instanceof GraphQLUnionType) {
       // Union
       let expr = walkUnion(originalName, field, info);
@@ -269,6 +273,10 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
       prefix = "list ";
     }
 
+    if (union_type instanceof GraphQLNonNull) {
+        union_type = union_type['ofType'];
+    }
+
     if (union_type instanceof GraphQLUnionType) {
       union_name = union_type.name;
     }
@@ -284,7 +292,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         let fieldNames = getSelectionSetFields(inlineFragment.selectionSet, info);
         let ctor = elmSafeName((union_name+'_'+inlineFragment.typeCondition.name.value));
         let shape = `(\\${fieldNames.join(' ')} -> ${ctor} { ${fieldNames.map(f => f + ' = ' + f).join(', ')} })`;
-        let right = '(map ' + shape + ' ' + fields.expr + ')';
+        let right = '(map ' + shape + ' ' + fields.expr.split('\n').join(' ') + '\n)';
         decoder += right;
 
       } else if (sel.kind == 'Field') {
@@ -327,6 +335,11 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
   }
 
   function leafTypeToDecoder(type: GraphQLType): string {
+
+    if (type instanceof GraphQLNonNull) {
+      type = type['ofType'];
+    }
+
     // leaf types only
     if (type instanceof GraphQLScalarType) {
       switch (type.name) {

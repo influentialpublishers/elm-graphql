@@ -194,6 +194,9 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
           if (parentType instanceof GraphQLList) {
             parentType = parentType['ofType']
           }
+          if (parentType instanceof GraphQLNonNull) {
+              parentType = parentType['ofType']
+          }
           unions[parentType.name] = parentType;
         }
         info.enter(node);
@@ -271,14 +274,9 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
         union = union['ofType']
     }
     let types = union.getTypes();
-    // let params = types.map((t, i) => alphabet[i]).join(' ');
+    let params = types.map((t, i) => alphabet[i]).join(' ');
     let decls: Array<ElmDecl> = [];
-    for (let type of types) {
-        let name = union.name + '_' + type.name + '_';
-        let t = typeToElm(type, true);
-        decls.push(new ElmTypeAliasDecl(name, t))
-    }
-    decls.push(new ElmTypeDecl(union.name + ' ', types.map((t, i) => elmSafeName(union.name+'_'+t.name) + ' ' + union.name + '_' + t.name + '_')));
+    decls.push(new ElmTypeDecl(union.name + ' ' + params, types.map((t, i) => elmSafeName(union.name+'_'+t.name) + ' ' + alphabet[i])));
     return decls;
   }
   
@@ -460,6 +458,10 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
         info_type = info_type['ofType']
     }
 
+    if (info_type instanceof GraphQLNonNull) {
+        info_type = info_type['ofType']
+    }
+
     if (info_type instanceof GraphQLUnionType) {
       let type = walkUnionSelectionSet(selSet, info);
       return [[], [], type];
@@ -493,6 +495,10 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
           union = union['ofType']
       }
 
+      if (union instanceof GraphQLNonNull) {
+          union = union['ofType']
+      }
+
       let typeMap: { [name: string]: ElmType } = {};
       for (let type of union.getTypes()) {
         typeMap[type.name] = new ElmTypeRecord([]);
@@ -522,7 +528,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       for (let name in typeMap) {
         args.push(typeMap[name]);
       }
-      return new ElmTypeApp(union.name, []);
+      return new ElmTypeApp(union.name, args);
   }
 
   function walkField(field: Field, info: TypeInfo): ElmFieldDecl {
@@ -585,6 +591,7 @@ export function typeToElm(type: GraphQLType, isNonNull = false): ElmType {
   if (type instanceof GraphQLNonNull) {
     elmType = typeToElm(type.ofType, true);
   }
+
   else if (type instanceof GraphQLScalarType) {
     switch (type.name) {
       case 'Int': elmType = new ElmTypeName('Int'); break;
