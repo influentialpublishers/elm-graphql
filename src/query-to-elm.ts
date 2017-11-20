@@ -274,14 +274,9 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
         union = union['ofType']
     }
     let types = union.getTypes();
-    // let params = types.map((t, i) => alphabet[i]).join(' ');
+    let params = types.map((t, i) => alphabet[i]).join(' ');
     let decls: Array<ElmDecl> = [];
-    for (let type of types) {
-        let name = union.name + '_' + type.name + '_';
-        let t = typeToElm(type, true);
-        decls.push(new ElmTypeAliasDecl(name, t))
-    }
-    decls.push(new ElmTypeDecl(union.name + ' ', types.map((t, i) => elmSafeName(union.name+'_'+t.name) + ' ' + union.name + '_' + t.name + '_')));
+    decls.push(new ElmTypeDecl(union.name + ' ' + params, types.map((t, i) => elmSafeName(union.name+'_'+t.name) + ' ' + alphabet[i])));
     return decls;
   }
   
@@ -533,7 +528,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       for (let name in typeMap) {
         args.push(typeMap[name]);
       }
-      return new ElmTypeApp(union.name, []);
+      return new ElmTypeApp(union.name, args);
   }
 
   function walkField(field: Field, info: TypeInfo): ElmFieldDecl {
