@@ -27,6 +27,7 @@ let optionDefinitions = [
   { name: 'schema', type: String },
   { name: 'method', type: String },
   { name: 'help', type: Boolean },
+  { name: 'scan', type: String, defaultValue: [ '.' ] },
 ];
 
 let options: any = commandLineArgs(optionDefinitions);
@@ -50,13 +51,13 @@ if (options.schema) {
     const filepath = path.resolve(options.schema);
     const obj = require(filepath);
     let schema = buildClientSchema(obj.data)
-    processFiles(schema);
+    processFiles(schema, options.scan);
 }
 else {
     performIntrospectionQuery(body => {
         let result = JSON.parse(body);
         let schema = buildClientSchema(result.data);
-        processFiles(schema);
+        processFiles(schema, options.scan);
     });
 }
 
@@ -101,9 +102,9 @@ function capitalize(str: string) {
     return str[0].toUpperCase() + str.substr(1);
 }
 
-function processFiles(schema: GraphQLSchema) {
-  let paths = scanDir('.', []);
- 
+function processFiles(schema: GraphQLSchema, scan) {
+  let paths = scanDir(scan, []);
+
   for (let filePath of paths) {
     let fullpath = path.join(...filePath);
     let graphql = fs.readFileSync(fullpath, 'utf8');
