@@ -103,7 +103,7 @@ function capitalize(str: string) {
 
 function processFiles(schema: GraphQLSchema) {
   let paths = scanDir('.', []);
- 
+
   for (let filePath of paths) {
     let fullpath = path.join(...filePath);
     let graphql = fs.readFileSync(fullpath, 'utf8');
@@ -147,6 +147,10 @@ function scanDir(dirpath: string, parts: Array<string>): Array<Array<string>> {
   let filenames = fs.readdirSync(dirpath);
   let found: Array<Array<string>> = [];
   for (let filename of filenames) {
+    if (filename === 'node_modules') {
+      continue
+    }
+
     let fullPath = path.join(dirpath, filename);
     if (fs.statSync(fullPath).isDirectory() && filename[0] != '.') {
       found = found.concat(scanDir(fullPath, parts.concat([filename])));
