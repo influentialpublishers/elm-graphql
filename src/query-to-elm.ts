@@ -486,6 +486,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
   
   function walkUnionSelectionSet(selSet: SelectionSet, info: TypeInfo): ElmType {
     let union = <GraphQLUnionType>info.getType();
+    let hasTypename = false;
 
       if (union instanceof GraphQLNonNull) {
           union = union['ofType']
@@ -500,11 +501,14 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       }
 
       let typeMap: { [name: string]: ElmType } = {};
-      // for (let type of union.getTypes()) {
-      //   typeMap[type.name] = new ElmTypeRecord([]);
-      // }
 
       for (let sel of selSet.selections) {
+        if (sel.kind == 'Field') {
+          let field = (<Field>sel)
+          if (field.name.value == "__typename") {
+            hasTypename = true;
+          }
+        }
         if (sel.kind == 'InlineFragment') {
           let inline = (<InlineFragment>sel);
 
@@ -541,6 +545,10 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
 
           typeMap[spread.name.value] = type;
         }
+      }
+
+      if (!hasTypename) {
+        throw new Error(`must query field '__typename' on union types (missing for '${union.name}')`);
       }
 
       let args: Array<ElmType> = [];
