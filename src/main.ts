@@ -103,7 +103,7 @@ function capitalize(str: string) {
 
 function processFiles(schema: GraphQLSchema) {
   let paths = scanDir('.', []);
- 
+
   for (let filePath of paths) {
     let fullpath = path.join(...filePath);
     let graphql = fs.readFileSync(fullpath, 'utf8');
