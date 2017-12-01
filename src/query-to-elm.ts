@@ -186,17 +186,17 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     let info = new TypeInfo(schema);
     visit(doc, {
       enter: function(node, key, parent) {
-        if (node.kind == 'InlineFragment') {
-          let parentType = <GraphQLUnionType> info.getType();
-          if (parentType instanceof GraphQLNonNull) {
+        let parentType = <GraphQLUnionType> info.getType();
+        if (parentType instanceof GraphQLNonNull) {
+          parentType = parentType['ofType']
+        }
+        if (parentType instanceof GraphQLList) {
+          parentType = parentType['ofType']
+        }
+        if (parentType instanceof GraphQLNonNull) {
             parentType = parentType['ofType']
-          }
-          if (parentType instanceof GraphQLList) {
-            parentType = parentType['ofType']
-          }
-          if (parentType instanceof GraphQLNonNull) {
-              parentType = parentType['ofType']
-          }
+        }
+        if (parentType instanceof GraphQLUnionType) {
           unions[parentType.name] = parentType;
         }
         info.enter(node);
@@ -486,6 +486,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
   
   function walkUnionSelectionSet(selSet: SelectionSet, info: TypeInfo): ElmType {
     let union = <GraphQLUnionType>info.getType();
+    let hasTypename = false;
 
       if (union instanceof GraphQLNonNull) {
           union = union['ofType']
@@ -500,18 +501,21 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       }
 
       let typeMap: { [name: string]: ElmType } = {};
-      for (let type of union.getTypes()) {
-        typeMap[type.name] = new ElmTypeRecord([]);
-      }
 
       for (let sel of selSet.selections) {
+        if (sel.kind == 'Field') {
+          let field = (<Field>sel)
+          if (field.name.value == "__typename") {
+            hasTypename = true;
+          }
+        }
         if (sel.kind == 'InlineFragment') {
           let inline = (<InlineFragment>sel);
 
           info.enter(inline);
           let [fields, spreads] = walkSelectionSet(inline.selectionSet, info);
           info.leave(inline);
-          
+
           // record
           let type: ElmType = new ElmTypeRecord(fields);
           // spreads
@@ -522,12 +526,36 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
 
           typeMap[inline.typeCondition.name.value] = type;
         }
+        else if (sel.kind == 'FragmentSpread') {
+          let spread = (<FragmentSpread>sel);
+          let name = spread.name.value;
+          let frag = fragmentDefinitionMap[name];
+
+          info.enter(frag);
+          let [fields, spreads] = walkSelectionSet(frag.selectionSet, info);
+          info.leave(frag);
+
+          // record
+          let type: ElmType = new ElmTypeRecord(fields);
+          // spreads
+          for (let spreadName of spreads) {
+              let typeName = spreadName[0].toUpperCase() + spreadName.substr(1) + '_';
+              type = new ElmTypeApp(typeName, [type]);
+          }
+
+          typeMap[spread.name.value] = type;
+        }
+      }
+
+      if (!hasTypename) {
+        throw new Error(`must query field '__typename' on union types (missing for '${union.name}')`);
       }
 
       let args: Array<ElmType> = [];
       for (let name in typeMap) {
         args.push(typeMap[name]);
       }
+
       return new ElmTypeApp(union.name, args);
   }
 
