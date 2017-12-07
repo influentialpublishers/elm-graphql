@@ -150,7 +150,7 @@ function scanDir(dirpath: string, parts: Array<string>): Array<Array<string>> {
     if (filename === 'node_modules') {
       continue
     }
-
+    
     let fullPath = path.join(dirpath, filename);
     if (fs.statSync(fullPath).isDirectory() && filename[0] != '.') {
       found = found.concat(scanDir(fullPath, parts.concat([filename])));

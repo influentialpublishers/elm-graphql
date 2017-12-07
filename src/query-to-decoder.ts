@@ -313,7 +313,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
           info.leave(def)
           let ctor = elmSafeName((union_name+'_'+name));
           let shape = `(\\${fieldNames.join(' ')} -> ${ctor} { ${fieldNames.map(f => f + ' = ' + f).join(', ')} })`;
-          let right = '(map ' + shape + ' ' + fields.expr + ')';
+          let right = '(map ' + shape + ' ' + fields.expr.split('\n').join(' ') + '\n)';
           decoder += right;
       } else {
         throw new Error('Unexpected: ' + sel.kind);
