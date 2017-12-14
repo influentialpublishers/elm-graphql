@@ -135,9 +135,10 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
     for (let sel of selSet.selections) {
       if (sel.kind == 'Field') {
         let field = <Field>sel;
-        if (seenFields.indexOf(field.name.value) == -1) {
+        var name = field.alias == null ? field.name.value : field.alias.value;
+        if (seenFields.indexOf(name) == -1) {
           fields.push(walkField(field, info));
-          seenFields.push(field.name.value);
+          seenFields.push(name);
         }
       } else if (sel.kind == 'FragmentSpread') {
         // expand out all fragment spreads
