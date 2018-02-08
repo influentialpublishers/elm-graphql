@@ -464,6 +464,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
 
     if (info_type instanceof GraphQLUnionType) {
       let type = walkUnionSelectionSet(selSet, info);
+      info.leave(selSet);
       return [[], [], type];
     } else {
       for (let sel of selSet.selections) {
@@ -576,12 +577,13 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     if (field.selectionSet) {
       let isMaybe = false
       if (info_type instanceof GraphQLNonNull) {
-	info_type = info_type['ofType']	
+	    info_type = info_type['ofType']
       } else {
-	isMaybe = true
+	    isMaybe = true
       }
 
       let isList = info_type instanceof GraphQLList;
+
       let [fields, spreads, union] = walkSelectionSet(field.selectionSet, info);
       
       let type: ElmType = union ? union : new ElmTypeRecord(fields);
@@ -596,7 +598,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       }
 
       if (isMaybe) {
-	type = new ElmTypeApp('Maybe', [type]);
+	    type = new ElmTypeApp('Maybe', [type]);
       }
 
       info.leave(field);
