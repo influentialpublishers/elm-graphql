@@ -71,18 +71,23 @@ const alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm
                   'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
 
 export function queryToElm(graphql: string, moduleName: string, liveUrl: string, verb: string,
-                           schema: GraphQLSchema): string {
+                           schema: GraphQLSchema, errorSpec: boolean): string {
   let queryDocument = parse(graphql);
-  let [decls, expose] = translateQuery(liveUrl, queryDocument, schema, verb);
+  let [decls, expose] = translateQuery(liveUrl, queryDocument, schema, verb, errorSpec);
+  let importGraphql = 'GraphQL exposing (apply, maybeEncode, query, mutation)';
+  if (errorSpec) {
+    importGraphql = 'GraphQLSpec exposing (Response, apply, maybeEncode, query, mutation)';
+  }
+
   return moduleToString(moduleName, expose, [
     'Json.Decode exposing (..)',
     'Json.Encode exposing (encode)',
     'Http',
-    'GraphQL exposing (apply, maybeEncode)'
+    importGraphql
   ], decls);
 }
 
-function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb: string): [Array<ElmDecl>, Array<string>] {
+function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb: string, errorSpec: boolean): [Array<ElmDecl>, Array<string>] {
   let expose: Array<string> = [];
   let fragmentDefinitionMap: FragmentDefinitionMap = {};
 
@@ -295,6 +300,10 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
         name = 'AnonymousQuery';
       }
       let resultType = name[0].toUpperCase() + name.substr(1);
+      let responseType = resultType;
+      if(errorSpec) {
+        responseType = "(Response " + resultType + ")";
+      }
       // todo: Directives
       // SelectionSet
       let [fields, spreads] = walkSelectionSet(def.selectionSet, info);
@@ -334,7 +343,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       let methodParam = def.operation == 'query' ? `"${verb}" ` : '';
 
       decls.push(new ElmFunctionDecl(
-         funcName, elmParamsDecl, new ElmTypeName(`Http.Request ${resultType}`),
+         funcName, elmParamsDecl, new ElmTypeName(`Http.Request ${responseType}`),
          {
            // we use awkward variable names to avoid naming collisions with query parameters
            expr: `let graphQLQuery = """${query.replace(/\s+/g, ' ')}""" in\n` +
@@ -355,7 +364,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
              .join(`\n                , `) + '\n' +
              `                ]\n` +
              `    in\n` +
-             `    GraphQL.${def.operation} ${methodParam}endpointUrl graphQLQuery "${name}" graphQLParams ${decodeFuncName}`
+             `    ${def.operation} ${methodParam}endpointUrl graphQLQuery "${name}" graphQLParams ${decodeFuncName}`
          }
       ));
       let resultTypeName = resultType[0].toUpperCase() + resultType.substr(1);
