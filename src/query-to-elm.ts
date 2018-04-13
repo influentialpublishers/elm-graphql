@@ -116,11 +116,12 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       let decodeFragFuncName = fragName[0].toLowerCase() + fragName.substr(1) + 'Decoder';
       let fragTypeName = fragName[0].toUpperCase() + fragName.substr(1);
       let fragTypeNameExt = fragTypeName + '_';
-      decls.push(new ElmFunctionDecl(
-              decodeFragFuncName, [],
-              new ElmTypeName('Decoder ' + fragTypeName),
-              decoderForFragment(frag, info, schema, fragmentDefinitionMap, seenFragments) ));
-      expose.push(decodeFragFuncName);
+      //// Outputs decoders for individual fragments (Not currently used)
+      // decls.push(new ElmFunctionDecl(
+      //         decodeFragFuncName, [],
+      //         new ElmTypeName('Decoder ' + fragTypeName),
+      //         decoderForFragment(frag, info, schema, fragmentDefinitionMap, seenFragments) ));
+      // expose.push(decodeFragFuncName);
       expose.push(fragTypeName);
       expose.push(fragTypeNameExt);
     }
