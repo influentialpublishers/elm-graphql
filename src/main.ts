@@ -27,6 +27,7 @@ let optionDefinitions = [
   { name: 'schema', type: String },
   { name: 'method', type: String },
   { name: 'help', type: Boolean },
+  { name: 'error-spec', type: Boolean },
 ];
 
 let options: any = commandLineArgs(optionDefinitions);
@@ -45,18 +46,19 @@ if (!options.endpoint) {
 // output config
 let verb = options.method || 'GET';
 let endpointUrl = options.endpoint;
+let errorSpec = options['error-spec'];
 
 if (options.schema) {
     const filepath = path.resolve(options.schema);
     const obj = require(filepath);
     let schema = buildClientSchema(obj.data)
-    processFiles(schema);
+    processFiles(schema, errorSpec);
 }
 else {
     performIntrospectionQuery(body => {
         let result = JSON.parse(body);
         let schema = buildClientSchema(result.data);
-        processFiles(schema);
+        processFiles(schema, errorSpec);
     });
 }
 
@@ -101,7 +103,7 @@ function capitalize(str: string) {
     return str[0].toUpperCase() + str.substr(1);
 }
 
-function processFiles(schema: GraphQLSchema) {
+function processFiles(schema: GraphQLSchema, errorSpec: boolean) {
   let paths = scanDir('.', []);
 
   for (let filePath of paths) {
@@ -128,7 +130,7 @@ function processFiles(schema: GraphQLSchema) {
     let moduleName = filepath.substr(0, filepath.length - extname.length);
     let outPath = path.join(path.dirname(fullpath), filename + '.elm');
 
-    let elm = queryToElm(graphql, moduleName, endpointUrl, verb, schema);
+    let elm = queryToElm(graphql, moduleName, endpointUrl, verb, schema, errorSpec);
     fs.writeFileSync(outPath, elm);
 
     // if elm-format is available then run it on the output
