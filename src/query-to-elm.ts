@@ -410,6 +410,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
         case 'ID':
         case 'DateTime': encoder = 'Json.Encode.string ' + value; break;
         case 'String': encoder = 'Json.Encode.string ' + value; break;
+        default: encoder = 'Json.Encode.string ' + value; break;
       }
     } else if (type instanceof  GraphQLEnumType) {
       const values = type.getValues()
@@ -640,6 +641,7 @@ export function typeToElm(type: GraphQLType, isNonNull = false): ElmType {
       case 'ID':
       case 'DateTime': elmType = new ElmTypeName('String'); break;
       case 'String': elmType = new ElmTypeName('String'); break;
+      default: elmType = new ElmTypeName('String'); break;
     }
   } else if (type instanceof GraphQLEnumType) {
     elmType = new ElmTypeName(type.name[0].toUpperCase() + type.name.substr(1));

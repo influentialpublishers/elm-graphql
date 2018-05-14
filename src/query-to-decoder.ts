@@ -350,6 +350,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         case 'ID':
         case 'DateTime': return 'string';
         case 'String': return 'string';
+        default: return 'string';
       }
     } else if (type instanceof GraphQLEnumType) {
       return type.name.toLowerCase() + 'Decoder';
