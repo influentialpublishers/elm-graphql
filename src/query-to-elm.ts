@@ -380,10 +380,10 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
         }
       }));
 
-      let elmParams = new ElmParameterDecl('params', new ElmTypeName(resultType + "_Input"));
-      
+      // Expose / reference input type for query
       let elmParamsDecl = [];
       if(elmParamsType.fields.length > 0) {
+          let elmParams = new ElmParameterDecl('params', new ElmTypeName(resultType + "_Input"));
           elmParamsDecl = [elmParams];
 
           let paramName = resultType + "_Input";
