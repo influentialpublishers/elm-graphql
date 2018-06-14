@@ -104,45 +104,53 @@ function capitalize(str: string) {
 }
 
 function processFiles(schema: GraphQLSchema, errorSpec: boolean) {
-  let paths = scanDir('.', []);
 
-  for (let filePath of paths) {
-    let fullpath = path.join(...filePath);
-    let graphql = fs.readFileSync(fullpath, 'utf8');
-    let doc = Lang.parse(graphql)
-    let errors = validate(schema, doc)
+  let elmPackage = fs.readFileSync("./elm-package.json", 'utf8');
+  let sources = JSON.parse(elmPackage)["source-directories"];
 
-    if(errors.length) {
-      console.error('Error processing '+fullpath+': ')
-      for (let err of errors) {
-	console.error(' -' + err.message);
+  let count = 0
+  for (let source of sources) {
+    let paths = scanDir(source, [source]);
+    count += paths.length;
+
+    for (let filePath of paths) {
+      let fullpath = path.join(...filePath);
+      let graphql = fs.readFileSync(fullpath, 'utf8');
+      let doc = Lang.parse(graphql)
+      let errors = validate(schema, doc)
+
+      if(errors.length) {
+        console.error('Error processing '+fullpath+': ')
+        for (let err of errors) {
+      console.error(' -' + err.message);
+        }
+        process.exit(1)
       }
-      process.exit(1)
-    }
 
-    let rootindex = fullpath.indexOf("src/");
-    let rootpath = fullpath.substr(rootindex + 4);
-    let pathdirs = rootpath.split('/');
-    let filepath = pathdirs.map(capitalize).join('.');
-    let basename = path.basename(fullpath);
-    let extname =  path.extname(fullpath);
-    let filename = basename.substr(0, basename.length - extname.length);
-    let moduleName = filepath.substr(0, filepath.length - extname.length);
-    let outPath = path.join(path.dirname(fullpath), filename + '.elm');
+      let rootindex = fullpath.indexOf("src/");
+      let rootpath = fullpath.substr(rootindex + 4);
+      let pathdirs = rootpath.split('/');
+      let filepath = pathdirs.map(capitalize).join('.');
+      let basename = path.basename(fullpath);
+      let extname =  path.extname(fullpath);
+      let filename = basename.substr(0, basename.length - extname.length);
+      let moduleName = filepath.substr(0, filepath.length - extname.length);
+      let outPath = path.join(path.dirname(fullpath), filename + '.elm');
 
-    let elm = queryToElm(graphql, moduleName, endpointUrl, verb, schema, errorSpec);
-    fs.writeFileSync(outPath, elm);
+      let elm = queryToElm(graphql, moduleName, endpointUrl, verb, schema, errorSpec);
+      fs.writeFileSync(outPath, elm);
 
-    // if elm-format is available then run it on the output
-    try {
-      child_process.execSync('elm-format "' + outPath + '" --yes');
-    } catch (e) {
-      // ignore
+      // if elm-format is available then run it on the output
+      try {
+        child_process.execSync('elm-format "' + outPath + '" --yes');
+      } catch (e) {
+        // ignore
+      }
     }
   }
 
-  let plural = paths.length != 1 ? 's' : '';
-  console.log('Success! Generated ' + paths.length + ' module' + plural + '.')
+  let plural = count != 1 ? 's' : '';
+  console.log('Success! Generated ' + count + ' module' + plural + '.')
 }
 
 function scanDir(dirpath: string, parts: Array<string>): Array<Array<string>> {
