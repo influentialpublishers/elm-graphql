@@ -451,7 +451,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       }
       encoder = '(Json.Encode.object [' + fieldEncoders.join(`, `) + '])';
     } else if (type instanceof GraphQLList) {
-      encoder = '(Json.Encode.list (List.map (\\x -> ' + encoderForInputType(type.ofType, true, 'x') + ') ' + value + '))';
+      encoder = '(Json.Encode.list (\\x -> ' + encoderForInputType(type.ofType, true, 'x') + ') ' + value + ')';
     } else if (type instanceof GraphQLScalarType) {
       switch (type.name) {
         case 'Int': encoder = 'Json.Encode.int ' + value; break;
@@ -466,7 +466,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       const values = type.getValues()
       const tuples = values.map((v) => `("${type.name + '_' + v.name[0].toUpperCase() + v.name.substr(1).toLowerCase()}", "${v.name}")`)
       const map = `[${tuples.join(',')}]`
-      encoder = `Json.Encode.string <| Maybe.withDefault "" <| Maybe.map Tuple.second <| List.head <| (\\s -> List.filter (Tuple.first >> (==)(s)) ${map} ) <| toString ` + value;
+      encoder = `Json.Encode.string <| Maybe.withDefault "" <| Maybe.map Tuple.second <| List.head <| (\\s -> List.filter (Tuple.first >> (==)(s)) ${map} ) <| Debug.toString ` + value;
     } else {
 
       throw new Error('not implemented: ' + type.constructor.name);
