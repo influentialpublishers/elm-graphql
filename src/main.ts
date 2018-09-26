@@ -66,7 +66,7 @@ function performIntrospectionQuery(callback: (body: string) => void) {
   // introspection query
   let introspectionUrl = options.endpoint;
   if (!introspectionUrl) {
-    console.log('Error: missing graphql endpoint in elm-package.json');
+    console.log('Error: missing graphql endpoint in elm.json');
     process.exit(1);
   }
 
@@ -105,7 +105,7 @@ function capitalize(str: string) {
 
 function processFiles(schema: GraphQLSchema, errorSpec: boolean) {
 
-  let elmPackage = fs.readFileSync("./elm-package.json", 'utf8');
+  let elmPackage = fs.readFileSync("./elm.json", 'utf8');
   let sources = JSON.parse(elmPackage)["source-directories"];
 
   let count = 0

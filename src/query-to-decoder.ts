@@ -123,7 +123,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
     let fields = walkSelectionSet(def.selectionSet, info);
 
     let fieldNames = getSelectionSetFields(def.selectionSet, info);
-    let shape = `(\\${fieldNames.join(' ')} -> { ${fieldNames.map(f => f + ' = ' + f).join(', ')} })`;
+    let shape = `(\\${fieldNames.map(f => f + '_').join(' ')} -> { ${fieldNames.map(f => f + ' = ' + f + '_').join(', ')} })`;
     
     info.leave(def);
     return { expr: 'map ' + shape + ' ' + fields.expr };
@@ -226,7 +226,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         let fields = walkSelectionSet(field.selectionSet, info);
         info.leave(field);
         let fieldNames = getSelectionSetFields(field.selectionSet, info);
-        let shape = `(\\${fieldNames.join(' ')} -> { ${fieldNames.map(f => f + ' = ' + f).join(', ')} })`;
+        let shape = `(\\${fieldNames.map(f => f + '_').join(' ')} -> { ${fieldNames.map(f => f + ' = ' + f + '_').join(', ')} })`;
         let left = '(field "' + originalName + '" \n';
         let right = '(map ' + shape + ' ' + fields.expr + '))';
         let indent = '        ';
@@ -292,7 +292,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         info.leave(inlineFragment);
         let fieldNames = getSelectionSetFields(inlineFragment.selectionSet, info);
         let ctor = elmSafeName((union_name+'_'+inlineFragment.typeCondition.name.value));
-        let shape = `(\\${fieldNames.join(' ')} -> ${ctor} { ${fieldNames.map(f => f + ' = ' + f).join(', ')} })`;
+        let shape = `(\\${fieldNames.map(f => f + '_').join(' ')} -> ${ctor} { ${fieldNames.map(f => f + ' = ' + f + '_').join(', ')} })`;
         let right = '(map ' + shape + ' ' + fields.expr.split('\n').join(' ') + '\n)';
         decoder += right;
 
@@ -313,7 +313,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
           let fieldNames = getSelectionSetFields(def.selectionSet, info);
           info.leave(def)
           let ctor = elmSafeName((union_name+'_'+name));
-          let shape = `(\\${fieldNames.join(' ')} -> ${ctor} { ${fieldNames.map(f => f + ' = ' + f).join(', ')} })`;
+          let shape = `(\\${fieldNames.map(f => f + '_').join(' ')} -> ${ctor} { ${fieldNames.map(f => f + ' = ' + f + '_').join(', ')} })`;
           let right = '(map ' + shape + ' ' + fields.expr.split('\n').join(' ') + '\n)';
           decoder += right;
       } else {
