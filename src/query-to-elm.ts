@@ -405,10 +405,10 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
               let encoder: string;
                if (p.hasDefault) {
                  encoder =`case params.${p.name} of` +
-                     `\n                            Just val -> ${encoderForInputType(p.schemaType, true)} val` +
+                     `\n                            Just val -> ${encoderForInputType(0, p.schemaType, true)} val` +
                      `\n                            Nothing -> Json.Encode.null`
                } else {
-                 encoder = encoderForInputType(p.schemaType, true, 'params.' + p.name);
+                 encoder = encoderForInputType(0, p.schemaType, true, 'params.' + p.name);
                }
                return `("${p.name}", ${encoder})`;
              })
@@ -429,7 +429,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     }
   }
 
-  function encoderForInputType(type: GraphQLType, isNonNull?: boolean, path?: string): string {
+  function encoderForInputType(depth: number, type: GraphQLType, isNonNull?: boolean, path?: string): string {
     let encoder: string;
 
     let value = path;
@@ -447,11 +447,11 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       for (let name in fields) {
         let field = fields[name];
         let valuePath = value + '.' + field.name;
-        fieldEncoders.push(`("${field.name}", ${encoderForInputType(field.type, false, valuePath)})`);
+        fieldEncoders.push(`("${field.name}", ${encoderForInputType(depth + 1,field.type, false, valuePath)})`);
       }
       encoder = '(Json.Encode.object [' + fieldEncoders.join(`, `) + '])';
     } else if (type instanceof GraphQLList) {
-      encoder = '(Json.Encode.list (\\x -> ' + encoderForInputType(type.ofType, true, 'x') + ') ' + value + ')';
+    encoder = `(Json.Encode.list (\\x${depth} -> ` + encoderForInputType(depth + 1, type.ofType, true, 'x' + depth) + ') ' + value + ')';
     } else if (type instanceof GraphQLScalarType) {
       switch (type.name) {
         case 'Int': encoder = 'Json.Encode.int ' + value; break;
