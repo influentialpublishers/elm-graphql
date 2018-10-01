@@ -438,7 +438,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       type = type['ofType'];
     } else {
       isMaybe = true;    
-      value = 'o';
+      value = `o${depth}`;
     }
 
     if (type instanceof GraphQLInputObjectType) {
@@ -473,7 +473,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     }
 
     if (isMaybe) {
-      encoder = '(maybeEncode (\\o -> ' + encoder + ') '+ path + ')'
+    encoder = `(maybeEncode (\\o${depth} -> ` + encoder + ') '+ path + ')'
     }
     return encoder;
   }
