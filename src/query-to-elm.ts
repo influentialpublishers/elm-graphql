@@ -82,6 +82,7 @@ export function queryToElm(graphql: string, moduleName: string, liveUrl: string,
   return moduleToString(moduleName, expose, [
     'Json.Decode exposing (..)',
     'Json.Encode exposing (encode)',
+    'Time',
     'Http',
     importGraphql
   ], decls);
@@ -453,13 +454,15 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     } else if (type instanceof GraphQLList) {
     encoder = `(Json.Encode.list (\\x${depth} -> ` + encoderForInputType(depth + 1, type.ofType, true, 'x' + depth) + ') ' + value + ')';
     } else if (type instanceof GraphQLScalarType) {
+
       switch (type.name) {
         case 'Int': encoder = 'Json.Encode.int ' + value; break;
         case 'Float': encoder = 'Json.Encode.float ' + value; break;
         case 'Boolean': encoder = 'Json.Encode.bool ' + value; break;
-        case 'ID':
+        case 'UnixTimestamp': encoder = '(Json.Encode.int (Time.posixToMillis ' + value + ' )) '; break;
         case 'DateTime': encoder = 'Json.Encode.string ' + value; break;
         case 'String': encoder = 'Json.Encode.string ' + value; break;
+        case 'ID': encoder = 'Json.Encode.string ' + value; break;
         default: encoder = 'Json.Encode.string ' + value; break;
       }
     } else if (type instanceof  GraphQLEnumType) {
@@ -690,6 +693,7 @@ export function typeToElm(type: GraphQLType, isNonNull = false): ElmType {
       case 'Boolean': elmType = new ElmTypeName('Bool'); break;
       case 'ID':
       case 'DateTime': elmType = new ElmTypeName('String'); break;
+      case 'UnixTimestamp': elmType = new ElmTypeName('Time.Posix'); break;
       case 'String': elmType = new ElmTypeName('String'); break;
       default: elmType = new ElmTypeName('String'); break;
     }

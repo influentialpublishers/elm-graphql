@@ -349,6 +349,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         case 'Boolean': return 'bool';
         case 'ID':
         case 'DateTime': return 'string';
+        case 'UnixTimestamp': return 'map Time.millisToPosix int';
         case 'String': return 'string';
         default: return 'string';
       }
