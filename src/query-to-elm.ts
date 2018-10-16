@@ -459,7 +459,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
         case 'Int': encoder = 'Json.Encode.int ' + value; break;
         case 'Float': encoder = 'Json.Encode.float ' + value; break;
         case 'Boolean': encoder = 'Json.Encode.bool ' + value; break;
-	case 'UnixTimestamp': encoder = '(Json.Encode.int ((//) 1000 <| Time.posixToMillis ' + value + ' )) '; break;
+	case 'UnixTimestamp': encoder = '(Json.Encode.int ((\\p -> p // 1000 ) <| Time.posixToMillis ' + value + ' )) '; break;
         case 'DateTime': encoder = 'Json.Encode.string ' + value; break;
         case 'String': encoder = 'Json.Encode.string ' + value; break;
         case 'ID': encoder = 'Json.Encode.string ' + value; break;
