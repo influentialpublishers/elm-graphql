@@ -7,6 +7,7 @@
 /// <reference path="../typings/request.d.ts" />
 /// <reference path="../typings/graphql-utilities.d.ts" />
 /// <reference path="../typings/command-line-args.d.ts" />
+/// <reference path="../typings/graphql.d.ts" />
 
 import 'source-map-support/register';
 import * as fs from 'fs';
@@ -19,11 +20,13 @@ import { GraphQLSchema } from 'graphql/type';
 import { queryToElm } from './query-to-elm';
 import { validate } from 'graphql/validation';
 import * as Lang from 'graphql/language';
+import * as graphql from 'graphql';
 // entry point
 
 let optionDefinitions = [
   { name: 'init', type: Boolean },
   { name: 'endpoint', type: String, defaultOption: true },
+  { name: 'ast', alias: 'a', type: Boolean, defaultOption: false },
   { name: 'schema', type: String },
   { name: 'method', type: String },
   { name: 'help', type: Boolean },
@@ -50,10 +53,22 @@ let errorSpec = options['error-spec'];
 
 if (options.schema) {
     const filepath = path.resolve(options.schema);
-    const obj = require(filepath);
-    let schema = buildClientSchema(obj.data)
+    let obj = null;
+
+    if (options.ast) {
+        obj = require(filepath);
+    }
+
+    else {
+        const file = fs.readFileSync(filepath, 'utf8')
+        const ast = graphql.buildASTSchema(graphql.parse(file))
+        obj = graphql.graphqlSync(ast, introspectionQuery)
+    }
+
+    const schema = buildClientSchema(obj.data)
     processFiles(schema, errorSpec);
 }
+
 else {
     performIntrospectionQuery(body => {
         let result = JSON.parse(body);
