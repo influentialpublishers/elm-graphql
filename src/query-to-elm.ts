@@ -382,20 +382,21 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       }));
 
       // Expose / reference input type for query
-      let elmParamsDecl = [];
+      let elmParamsDecl = [
+      	new ElmParameterDecl('msg', new ElmTypeName("((Result GraphQLSpec.Error " + resultType + ")  -> msg)")),
+      ];
       if(elmParamsType.fields.length > 0) {
-          let elmParams = new ElmParameterDecl('params', new ElmTypeName(resultType + "_Input"));
-          elmParamsDecl = [elmParams];
+      	elmParamsDecl.push(new ElmParameterDecl('params', new ElmTypeName(resultType + "_Input")));
 
-          let paramName = resultType + "_Input";
-          decls.push(new ElmTypeAliasDecl(paramName, elmParamsType, []));
-          expose.push(paramName);
+        let paramName = resultType + "_Input";
+        decls.push(new ElmTypeAliasDecl(paramName, elmParamsType, []));
+        expose.push(paramName);
       }
 
       let methodParam = def.operation == 'query' ? `"${verb}" ` : '';
 
       decls.push(new ElmFunctionDecl(
-         funcName, elmParamsDecl, new ElmTypeName(`Http.Request ${responseType}`),
+         funcName, elmParamsDecl, new ElmTypeName(`Cmd msg`),
          {
            // we use awkward variable names to avoid naming collisions with query parameters
            expr: `let graphQLQuery = """${query.replace(/\s+/g, ' ')}""" in\n` +
@@ -416,7 +417,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
              .join(`\n                , `) + '\n' +
              `                ]\n` +
              `    in\n` +
-             `    ${def.operation} ${methodParam}endpointUrl graphQLQuery "${name}" graphQLParams ${decodeFuncName}`
+             `    ${def.operation} ${methodParam}endpointUrl graphQLQuery "${name}" graphQLParams msg ${decodeFuncName}`
          }
       ));
       let resultTypeName = resultType[0].toUpperCase() + resultType.substr(1);
