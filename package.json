@@ -5,11 +5,11 @@
   "main": "lib/main.js",
   "bin": "bin/elm-graphql",
   "scripts": {
-    "prepare": "tsc",
-    "tsc": "tsc",
+    "prepare": "tsc-transpile-only",
+    "tsc": "tsc-transpile-only",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node lib/query-to-elm.js",
-    "postinstall": "tsc"
+    "postinstall": "tsc-transpile-only"
   },
   "author": "John Hewson",
   "license": "BSD",
@@ -18,7 +18,8 @@
     "graphql": "^14.0.2",
     "request": "^2.69.0",
     "source-map-support": "^0.4.0",
-    "typescript": "^1.8.10"
+    "typescript": "^2.9.2",
+    "typescript-transpile-only": "0.0.4"
   },
   "devDependencies": {
     "express": "^4.14.0",
