@@ -641,7 +641,9 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     // todo: Directives
     let include = field.directives.reduce((acc, {name, arguments: [argument]}) => {
       if (name.value === "include" && !argument.value.value) {
-        return argument.value.value;
+        return false;
+      } else if (name.value === "skip" && argument.value.value) {
+        return false;
       } else {
         return acc;
       }

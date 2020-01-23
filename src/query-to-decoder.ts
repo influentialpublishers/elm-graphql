@@ -194,7 +194,9 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
 
     let include = field.directives.reduce((acc, {name, arguments: [argument]}) => {
       if (name.value === "include" && !argument.value.value) {
-        return argument.value.value;
+        return false;
+      } else if (name.value === "skip" && argument.value.value) {
+        return false;
       } else {
         return acc;
       }
