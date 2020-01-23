@@ -84,6 +84,7 @@ export function queryToElm(graphql: string, moduleName: string, liveUrl: string,
     'Json.Encode exposing (encode)',
     'Time',
     'Http',
+    'Maybe',
     importGraphql
   ], decls);
 }
@@ -652,7 +653,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     // SelectionSet
     if (field.selectionSet) {
       let isMaybe = false;
-      if (info_type instanceof GraphQLNonNull && include) {
+      if (info_type instanceof GraphQLNonNull) {
         info_type = info_type['ofType'];
       } else {
         isMaybe = true;
@@ -684,7 +685,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
         throw new Error('Unknown GraphQL field: ' + field.name.value);
       }
       let type = typeToElm(info.getType());
-      if (!include) {
+      if (!include && !(info_type instanceof GraphQLList)) {
         type = new ElmTypeApp('Maybe', [type]);
       }
       info.leave(field);

@@ -202,7 +202,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
       }
     }, true);
 
-    if (info_type instanceof GraphQLNonNull && include) {
+    if (info_type instanceof GraphQLNonNull) {
       info_type = info_type['ofType'];
     } else {
       isMaybe = true;
@@ -231,9 +231,9 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
       let expr = walkUnion(originalName, field, info);
 
       return expr;
-    } else {
-      // SelectionSet
-      if (field.selectionSet) {
+
+    // SelectionSet
+    } else if (field.selectionSet) {
         let fields = walkSelectionSet(field.selectionSet, info);
         info.leave(field);
         let fieldNames = getSelectionSetFields(field.selectionSet, info);
@@ -242,26 +242,27 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         let right = '(map ' + shape + ' ' + fields.expr + '))';
         let indent = '        ';
         if (prefix) {
-	      right = '(' + prefix + right + ')';
-	    }
-	    if (isMaybe) {
-	      right = '(' + 'maybe ' + right + ')';
-	    }
-
-        return { expr: left + indent + right };
-      } else {
-
-        let decoder = leafTypeToDecoder(info_type);
-
-        let right = '(field "' + originalName + '" (' + prefix + decoder +'))';
-
+          left =  '(map (Maybe.withDefault []) (maybe' + left;
+          right = '(' + prefix + right + ')))';
+        }
         if (isMaybe) {
-          right = '(maybe ' + right + ')';
+          right = '(' + 'maybe ' + right + ')';
         }
 
-        info.leave(field);
-        return { expr: right };
+        return { expr: left + indent + right };
+
+    } else {
+
+      let decoder = leafTypeToDecoder(info_type);
+
+      let right = '(field "' + originalName + '" (' + prefix + decoder +'))';
+
+      if (isMaybe || (!include && !(info_type instanceof GraphQLList))) {
+        right = '(maybe ' + right + ')';
       }
+
+      info.leave(field);
+      return { expr: right };
     }
   }
 
