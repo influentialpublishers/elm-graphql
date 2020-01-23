@@ -628,7 +628,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
   function walkField(field: Field, info: TypeInfo): ElmFieldDecl {
     info.enter(field);
 
-    let info_type = info.getType()
+    let info_type = info.getType();
     // Name
     let name = elmSafeName(field.name.value);
     // Alias
@@ -649,11 +649,11 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
 
     // SelectionSet
     if (field.selectionSet) {
-      let isMaybe = false
+      let isMaybe = false;
       if (info_type instanceof GraphQLNonNull && include) {
-	    info_type = info_type['ofType']
+        info_type = info_type['ofType'];
       } else {
-	    isMaybe = true
+        isMaybe = true;
       }
 
       let isList = info_type instanceof GraphQLList;
@@ -672,11 +672,11 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       }
 
       if (isMaybe) {
-	    type = new ElmTypeApp('Maybe', [type]);
+        type = new ElmTypeApp('Maybe', [type]);
       }
 
       info.leave(field);
-      return new ElmFieldDecl(name, type)
+      return new ElmFieldDecl(name, type);
     } else {
       if (!info.getType()) {
         throw new Error('Unknown GraphQL field: ' + field.name.value);
@@ -686,7 +686,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
         type = new ElmTypeApp('Maybe', [type]);
       }
       info.leave(field);
-      return new ElmFieldDecl(name, type)
+      return new ElmFieldDecl(name, type);
     }
   }
   return walkQueryDocument(doc, new TypeInfo(schema));
