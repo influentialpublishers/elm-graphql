@@ -191,7 +191,16 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
 
     let info_type = info.getType()
     let isMaybe = false
-    if (info_type instanceof GraphQLNonNull) {
+
+    let include = field.directives.reduce((acc, {name, arguments: [argument]}) => {
+      if (name.value === "include" && !argument.value.value) {
+        return argument.value.value;
+      } else {
+        return acc;
+      }
+    }, true);
+
+    if (info_type instanceof GraphQLNonNull && include) {
       info_type = info_type['ofType'];
     } else {
       isMaybe = true;
@@ -211,9 +220,9 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
       prefix = 'list ';
     }
 
-      if (info_type instanceof GraphQLNonNull) {
-        info_type = info_type['ofType'];
-      }
+    if (info_type instanceof GraphQLNonNull) {
+      info_type = info_type['ofType'];
+    }
 
     if (info_type instanceof GraphQLUnionType) {
       // Union

@@ -637,11 +637,20 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     }
     // todo: Arguments, such as `id: $someId`, where $someId is a variable
     let args = field.arguments; // e.g. id: "1000"
+
     // todo: Directives
+    let include = field.directives.reduce((acc, {name, arguments: [argument]}) => {
+      if (name.value === "include" && !argument.value.value) {
+        return argument.value.value;
+      } else {
+        return acc;
+      }
+    }, true);
+
     // SelectionSet
     if (field.selectionSet) {
       let isMaybe = false
-      if (info_type instanceof GraphQLNonNull) {
+      if (info_type instanceof GraphQLNonNull && include) {
 	    info_type = info_type['ofType']
       } else {
 	    isMaybe = true
@@ -673,6 +682,9 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
         throw new Error('Unknown GraphQL field: ' + field.name.value);
       }
       let type = typeToElm(info.getType());
+      if (!include) {
+        type = new ElmTypeApp('Maybe', [type]);
+      }
       info.leave(field);
       return new ElmFieldDecl(name, type)
     }
