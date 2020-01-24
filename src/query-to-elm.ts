@@ -661,6 +661,10 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
 
       let isList = info_type instanceof GraphQLList;
 
+      if (!include && !isList) {
+        isMaybe = true;
+      }
+
       let [fields, spreads, union] = walkSelectionSet(field.selectionSet, info);
       
       let type: ElmType = union ? union : new ElmTypeRecord(fields);

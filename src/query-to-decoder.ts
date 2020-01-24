@@ -242,12 +242,15 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
         let right = '(map ' + shape + ' ' + fields.expr + '))';
         let indent = '        ';
         if (prefix) {
-          left =  '(map (Maybe.withDefault []) (maybe' + left;
+          left = '(map (Maybe.withDefault []) (maybe' + left;
           right = '(' + prefix + right + ')))';
-        }
-        if (isMaybe) {
+        } else if (isMaybe) {
           right = '(' + 'maybe ' + right + ')';
+        } else if (!include && !(info_type instanceof GraphQLList)) {
+          left = '(maybe' + left;
+          right = right + ')';
         }
+
 
         return { expr: left + indent + right };
 
