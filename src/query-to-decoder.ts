@@ -228,6 +228,7 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
 
     // Union
     if (info_type instanceof GraphQLUnionType) {
+
       let expr = walkUnion(originalName, field, info);
       return expr;
 
