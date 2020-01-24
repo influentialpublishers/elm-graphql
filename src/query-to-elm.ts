@@ -84,6 +84,7 @@ export function queryToElm(graphql: string, moduleName: string, liveUrl: string,
     'Json.Encode exposing (encode)',
     'Time',
     'Http',
+    'Maybe',
     importGraphql
   ], decls);
 }
@@ -628,7 +629,7 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
   function walkField(field: Field, info: TypeInfo): ElmFieldDecl {
     info.enter(field);
 
-    let info_type = info.getType()
+    let info_type = info.getType();
     // Name
     let name = elmSafeName(field.name.value);
     // Alias
@@ -637,17 +638,32 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
     }
     // todo: Arguments, such as `id: $someId`, where $someId is a variable
     let args = field.arguments; // e.g. id: "1000"
+
     // todo: Directives
+    let include = field.directives.reduce((acc, {name, arguments: [argument]}) => {
+      if (name.value === "include" && !argument.value.value) {
+        return false;
+      } else if (name.value === "skip" && argument.value.value) {
+        return false;
+      } else {
+        return acc;
+      }
+    }, true);
+
     // SelectionSet
     if (field.selectionSet) {
-      let isMaybe = false
+      let isMaybe = false;
       if (info_type instanceof GraphQLNonNull) {
-	    info_type = info_type['ofType']
+        info_type = info_type['ofType'];
       } else {
-	    isMaybe = true
+        isMaybe = true;
       }
 
       let isList = info_type instanceof GraphQLList;
+
+      if (!include && !isList) {
+        isMaybe = true;
+      }
 
       let [fields, spreads, union] = walkSelectionSet(field.selectionSet, info);
       
@@ -663,18 +679,21 @@ function translateQuery(uri: string, doc: Document, schema: GraphQLSchema, verb:
       }
 
       if (isMaybe) {
-	    type = new ElmTypeApp('Maybe', [type]);
+        type = new ElmTypeApp('Maybe', [type]);
       }
 
       info.leave(field);
-      return new ElmFieldDecl(name, type)
+      return new ElmFieldDecl(name, type);
     } else {
       if (!info.getType()) {
         throw new Error('Unknown GraphQL field: ' + field.name.value);
       }
       let type = typeToElm(info.getType());
+      if (!include && !(info_type instanceof GraphQLList)) {
+        type = new ElmTypeApp('Maybe', [type]);
+      }
       info.leave(field);
-      return new ElmFieldDecl(name, type)
+      return new ElmFieldDecl(name, type);
     }
   }
   return walkQueryDocument(doc, new TypeInfo(schema));
