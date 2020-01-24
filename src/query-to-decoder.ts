@@ -226,46 +226,42 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
       info_type = info_type['ofType'];
     }
 
+    // Union
     if (info_type instanceof GraphQLUnionType) {
-      // Union
       let expr = walkUnion(originalName, field, info);
-
       return expr;
 
     // SelectionSet
     } else if (field.selectionSet) {
-        let fields = walkSelectionSet(field.selectionSet, info);
-        info.leave(field);
-        let fieldNames = getSelectionSetFields(field.selectionSet, info);
-        let shape = `(\\${fieldNames.map(f => f + '_').join(' ')} -> { ${fieldNames.map(f => f + ' = ' + f + '_').join(', ')} })`;
-        let left = '(field "' + originalName + '" \n';
-        let right = '(map ' + shape + ' ' + fields.expr + '))';
-        let indent = '        ';
-        if (prefix) {
-          left = '(map (Maybe.withDefault []) (maybe' + left;
-          right = '(' + prefix + right + ')))';
-        } else if (isMaybe) {
-          right = '(' + 'maybe ' + right + ')';
-        } else if (!include && !(info_type instanceof GraphQLList)) {
-          left = '(maybe' + left;
-          right = right + ')';
-        }
 
-
-        return { expr: left + indent + right };
+      let fields = walkSelectionSet(field.selectionSet, info);
+      info.leave(field);
+      let fieldNames = getSelectionSetFields(field.selectionSet, info);
+      let shape = `(\\${fieldNames.map(f => f + '_').join(' ')} -> { ${fieldNames.map(f => f + ' = ' + f + '_').join(', ')} })`;
+      let left = '(field "' + originalName + '" \n';
+      let right = '(map ' + shape + ' ' + fields.expr + '))';
+      let indent = '        ';
+      if (prefix) {
+        left = '(map (Maybe.withDefault []) (maybe' + left;
+        right = '(' + prefix + right + ')))';
+      } else if (isMaybe) {
+        right = '(' + 'maybe ' + right + ')';
+      } else if (!include && !(info_type instanceof GraphQLList)) {
+        left = '(maybe' + left;
+        right = right + ')';
+      }
+      return { expr: left + indent + right };
 
     } else {
 
       let decoder = leafTypeToDecoder(info_type);
-
       let right = '(field "' + originalName + '" (' + prefix + decoder +'))';
-
       if (isMaybe || (!include && !(info_type instanceof GraphQLList))) {
         right = '(maybe ' + right + ')';
       }
-
       info.leave(field);
       return { expr: right };
+
     }
   }
 
