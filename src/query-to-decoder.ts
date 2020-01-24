@@ -191,6 +191,17 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
 
     let info_type = info.getType()
     let isMaybe = false
+
+    let include = field.directives.reduce((acc, {name, arguments: [argument]}) => {
+      if (name.value === "include" && !argument.value.value) {
+        return false;
+      } else if (name.value === "skip" && argument.value.value) {
+        return false;
+      } else {
+        return acc;
+      }
+    }, true);
+
     if (info_type instanceof GraphQLNonNull) {
       info_type = info_type['ofType'];
     } else {
@@ -211,46 +222,47 @@ export function decoderFor(def: OperationDefinition | FragmentDefinition, info: 
       prefix = 'list ';
     }
 
-      if (info_type instanceof GraphQLNonNull) {
-        info_type = info_type['ofType'];
-      }
+    if (info_type instanceof GraphQLNonNull) {
+      info_type = info_type['ofType'];
+    }
 
+    // Union
     if (info_type instanceof GraphQLUnionType) {
-      // Union
+
       let expr = walkUnion(originalName, field, info);
-
       return expr;
-    } else {
-      // SelectionSet
-      if (field.selectionSet) {
-        let fields = walkSelectionSet(field.selectionSet, info);
-        info.leave(field);
-        let fieldNames = getSelectionSetFields(field.selectionSet, info);
-        let shape = `(\\${fieldNames.map(f => f + '_').join(' ')} -> { ${fieldNames.map(f => f + ' = ' + f + '_').join(', ')} })`;
-        let left = '(field "' + originalName + '" \n';
-        let right = '(map ' + shape + ' ' + fields.expr + '))';
-        let indent = '        ';
-        if (prefix) {
-	      right = '(' + prefix + right + ')';
-	    }
-	    if (isMaybe) {
-	      right = '(' + 'maybe ' + right + ')';
-	    }
 
-        return { expr: left + indent + right };
-      } else {
+    // SelectionSet
+    } else if (field.selectionSet) {
 
-        let decoder = leafTypeToDecoder(info_type);
-
-        let right = '(field "' + originalName + '" (' + prefix + decoder +'))';
-
-        if (isMaybe) {
-          right = '(maybe ' + right + ')';
-        }
-
-        info.leave(field);
-        return { expr: right };
+      let fields = walkSelectionSet(field.selectionSet, info);
+      info.leave(field);
+      let fieldNames = getSelectionSetFields(field.selectionSet, info);
+      let shape = `(\\${fieldNames.map(f => f + '_').join(' ')} -> { ${fieldNames.map(f => f + ' = ' + f + '_').join(', ')} })`;
+      let left = '(field "' + originalName + '" \n';
+      let right = '(map ' + shape + ' ' + fields.expr + '))';
+      let indent = '        ';
+      if (prefix) {
+        left = '(map (Maybe.withDefault []) (maybe' + left;
+        right = '(' + prefix + right + ')))';
+      } else if (isMaybe) {
+        right = '(' + 'maybe ' + right + ')';
+      } else if (!include && !(info_type instanceof GraphQLList)) {
+        left = '(maybe' + left;
+        right = right + ')';
       }
+      return { expr: left + indent + right };
+
+    } else {
+
+      let decoder = leafTypeToDecoder(info_type);
+      let right = '(field "' + originalName + '" (' + prefix + decoder +'))';
+      if (isMaybe || (!include && !(info_type instanceof GraphQLList))) {
+        right = '(maybe ' + right + ')';
+      }
+      info.leave(field);
+      return { expr: right };
+
     }
   }
 
