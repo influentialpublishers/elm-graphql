@@ -8,7 +8,8 @@
     "prepare": "tsc-transpile-only",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node lib/query-to-elm.js",
-    "postinstall": "tsc-transpile-only"
+    "postinstall": "tsc-transpile-only",
+    "tsc": "tsc-transpile-only"
   },
   "author": "John Hewson",
   "license": "BSD",
